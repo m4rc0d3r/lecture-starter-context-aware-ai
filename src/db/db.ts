@@ -42,7 +42,7 @@ export interface HNSWIndex {
 }
 
 // Define the database
-const db = new Dexie('chat-offline') as Dexie & {
+const db = new Dexie('offchat-bsa') as Dexie & {
   messages: EntityTable<Message, 'id'>;
   summaries: EntityTable<Summary, 'id'>;
   facts: EntityTable<Fact, 'id'>;
