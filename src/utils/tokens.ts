@@ -112,10 +112,23 @@ export function trimToTokenBudget<T extends { text: string }>(
   messages: T[],
   tokenBudget: number
 ): T[] {
-  // TODO(student): trim text/messages so they fit within a token budget. See the lecture materials.
-  void messages;
-  void tokenBudget;
-  throw new Error('TODO(student): implement trimToTokenBudget');
+  const result: T[] = [];
+  let currentTokens = 0;
+
+  for (let i = messages.length - 1; i >= 0; --i) {
+    const message = messages[i];
+    const messageTokens = estimateTokens(message.text);
+
+    const nextTokens = currentTokens + messageTokens;
+    if (nextTokens > tokenBudget) {
+      break;
+    }
+
+    result.unshift(message);
+    currentTokens = nextTokens;
+  }
+
+  return result;
 }
 
 /**
