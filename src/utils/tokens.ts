@@ -10,9 +10,7 @@
  * Heuristic: ~4 characters per token for English text
  */
 export function estimateTokens(text: string): number {
-  // TODO(student): estimate a token count for a string (~4 chars/token heuristic). See the lecture materials.
-  void text;
-  throw new Error('TODO(student): implement estimateTokens');
+  return Math.ceil(text.length / 4);
 }
 
 /**
