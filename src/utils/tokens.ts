@@ -58,14 +58,15 @@ export function calculateTokenBudget(maxInputTokens: number): TokenBudget {
   };
 }
 
+const SUMMARY_THRESHOLD_PERCENT = 0.9;
+
 /**
  * Check if buffer needs summarization
  */
 export function needsSummary(bufferTokens: number, budgetAllowance: number): boolean {
-  // TODO(student): decide whether the conversation should be summarized. See the lecture materials.
-  void bufferTokens;
-  void budgetAllowance;
-  throw new Error('TODO(student): implement needsSummary');
+  const threshold = budgetAllowance * SUMMARY_THRESHOLD_PERCENT;
+
+  return bufferTokens > threshold;
 }
 
 /**
