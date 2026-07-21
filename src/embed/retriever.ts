@@ -238,10 +238,17 @@ function calculateCombinedScore(
  * Calculate cosine similarity between two vectors
  */
 function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  // TODO(student): return cosine similarity between two vectors (dot product of normalized vectors). See the lecture materials.
-  void a;
-  void b;
-  throw new Error('TODO(student): implement cosineSimilarity');
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < a.length; ++i) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] ** 2;
+    normB += b[i] ** 2;
+  }
+
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 /**
