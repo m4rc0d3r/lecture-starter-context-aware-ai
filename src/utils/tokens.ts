@@ -154,8 +154,17 @@ export function selectMessagesForSummary<T extends { text: string }>(
   messages: T[],
   targetTokenReduction: number
 ): T[] {
-  // TODO(student): choose the oldest messages to fold into the summary. See the lecture materials.
-  void messages;
-  void targetTokenReduction;
-  throw new Error('TODO(student): implement selectMessagesForSummary');
+  const toSummarize: T[] = [];
+  let tokenCount = 0;
+
+  for (const message of messages) {
+    toSummarize.push(message);
+    tokenCount += estimateTokens(message.text);
+
+    if (tokenCount >= targetTokenReduction) {
+      break;
+    }
+  }
+
+  return toSummarize;
 }
