@@ -207,14 +207,20 @@ export async function removeEmbedding(msgId: number, threadId = 'default-thread'
   }
 }
 
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+
 /**
  * Calculate recency boost for a message
  * Returns value between 0 and 1, higher for more recent messages
  */
 function calculateRecencyBoost(timestamp: number): number {
-  // TODO(student): return a recency weight in [0,1] derived from a timestamp (logarithmic decay). See the lecture materials.
-  void timestamp;
-  throw new Error('TODO(student): implement calculateRecencyBoost');
+  const ageDays = (Date.now() - timestamp) / MILLISECONDS_IN_DAY;
+
+  return decay(ageDays);
+}
+
+function decay(value: number) {
+  return 1 / (1 + Math.log1p(value));
 }
 
 /**
