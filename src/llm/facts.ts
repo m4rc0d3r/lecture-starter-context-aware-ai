@@ -83,6 +83,38 @@ function parseFacts(response: string, sourceMsgId: number, threadId: string): Fa
   return facts;
 }
 
+type FactInput = Omit<Fact, 'id'> & { id?: number };
+
+/**
+ * Adds new facts or updates existing ones by the "key" field
+ */
+export async function upsertFactsByKeys(factsToUpsert: FactInput[]): Promise<void> {
+  await db.transaction('rw', db.facts, async () => {
+    const normalizedFacts = factsToUpsert.map(({ key, ...rest }) => ({
+      key: key.toLocaleLowerCase(),
+      ...rest,
+    }));
+    const keys = normalizedFacts.map(({ key }) => key);
+
+    const existingFacts = await db.facts.where('key').anyOf(keys).toArray();
+
+    const idByKey = new Map<Fact['key'], NonNullable<Fact['id']>>(
+      existingFacts
+        .filter(
+          (fact): fact is Omit<Fact, 'id'> & Required<Pick<Fact, 'id'>> => fact.id !== undefined
+        )
+        .map(({ id, key }) => [key, id])
+    );
+
+    const itemsToPut: Fact[] = normalizedFacts.map((fact) => ({
+      ...fact,
+      id: idByKey.get(fact.key),
+    }));
+
+    await db.facts.bulkPut(itemsToPut);
+  });
+}
+
 /**
  * Save extracted facts to database
  */
@@ -93,7 +125,7 @@ export async function saveFacts(facts: Fact[]): Promise<void> {
 
   try {
     // Batch insert all facts
-    await db.facts.bulkAdd(facts);
+    await upsertFactsByKeys(facts);
     traceLogger.info('Facts', 'Facts saved to database', { count: facts.length });
   } catch (error) {
     traceLogger.error('Facts', 'Failed to save facts', error);
