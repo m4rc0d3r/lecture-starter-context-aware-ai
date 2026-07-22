@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, type Message } from '../db/db.ts';
 import { useAppState } from '../state/store.tsx';
-import { getLLMService } from '../llm/llm-service.ts';
+import { getLLMService, type GenerationResult } from '../llm/llm-service.ts';
 import { assembleContext, validateUserInput, type ContextConfig } from '../llm/context.ts';
 import { embedService } from '../embed/embed-service.ts';
 import { initRetriever } from '../embed/retriever.ts';
@@ -46,6 +46,7 @@ export default function Chat() {
   } = useAppState();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const llmService = useRef(getLLMService());
+  const stopGenerationForUser = useRef<GenerationResult['stopGeneration']>(null);
 
   // Set up memory stats callback
   useEffect(() => {
@@ -199,7 +200,7 @@ export default function Chat() {
           context,
           () => {},
           () => {}
-        );
+        ).replyPromise;
       };
 
       const { retrievedSnippets, summary } = await processUserMessage(
@@ -226,7 +227,7 @@ export default function Chat() {
       const context = assembleContext(recentMessages, contextConfig);
 
       // Generate response with streaming
-      const fullResponse = await llmService.current.generateResponse(
+      const { replyPromise, stopGeneration } = llmService.current.generateResponse(
         context,
         (token) => {
           // Stream tokens to UI
@@ -237,6 +238,8 @@ export default function Chat() {
           setLastTokenUsage(usage);
         }
       );
+      stopGenerationForUser.current = stopGeneration;
+      const fullResponse = await replyPromise;
 
       // Save complete assistant message to Dexie
       const assistantMessage: Message = {
@@ -297,7 +300,7 @@ export default function Chat() {
   };
 
   const handleStop = () => {
-    llmService.current.stopGeneration();
+    stopGenerationForUser.current?.();
     setIsGenerating(false);
     setCurrentStreamedMessage('');
   };

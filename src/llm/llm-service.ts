@@ -27,6 +27,11 @@ export type TokenUsage = {
   totalTokens: number;
 };
 
+export type GenerationResult = {
+  replyPromise: Promise<string>;
+  stopGeneration: () => void;
+};
+
 /**
  * LLM service wrapper for WebLLM engine running in a Web Worker.
  * Handles model initialization, streaming generation, and error handling.
@@ -35,7 +40,7 @@ export class LLMService {
   private engine: MLCEngineInterface | null = null;
   private worker: Worker | null = null;
   private isReady: boolean = false;
-  private abortController: AbortController | null = null;
+  private activeAbortControllers = new Set<AbortController>();
   private tokenLimits: TokenLimits | null = null;
   private gpuCapabilities: GPUCapabilities | null = null;
 
@@ -88,77 +93,81 @@ export class LLMService {
   /**
    * Generate a response with streaming
    */
-  async generateResponse(
+  generateResponse(
     messages: ChatMessage[],
     onToken: (token: string) => void,
     onUsage?: (usage: TokenUsage) => void,
     options: GenerationOptions = {}
-  ): Promise<string> {
-    if (!this.engine || !this.isReady) {
-      throw new Error('Model not initialized. Call initModel() first.');
-    }
+  ): GenerationResult {
+    // Create abort controller for this generation
+    const abortController = new AbortController();
+    this.activeAbortControllers.add(abortController);
 
-    try {
-      // Create abort controller for this generation
-      this.abortController = new AbortController();
-
-      // Use dynamic token limits if available
-      const maxTokens = options.max_tokens ?? this.tokenLimits?.recommendedOutput ?? 1000;
-
-      const chunks = await this.engine.chat.completions.create({
-        messages,
-        temperature: options.temperature ?? 0.8,
-        top_p: options.top_p ?? 0.9,
-        max_tokens: maxTokens,
-        stream: true,
-        stream_options: { include_usage: true },
-      });
-
-      let fullReply = '';
-
-      for await (const chunk of chunks) {
-        // Check if generation was aborted
-        if (this.abortController.signal.aborted) {
-          break;
-        }
-
-        const delta = chunk.choices[0]?.delta.content || '';
-        if (delta) {
-          fullReply += delta;
-          onToken(delta);
-        }
-
-        // Report usage from final chunk
-        if (chunk.usage) {
-          const usage: TokenUsage = {
-            promptTokens: chunk.usage.prompt_tokens || 0,
-            completionTokens: chunk.usage.completion_tokens || 0,
-            totalTokens: chunk.usage.total_tokens || 0,
-          };
-          traceLogger.debug('LLM', 'Generation usage', usage);
-          if (onUsage) {
-            onUsage(usage);
-          }
-        }
+    const execute = async () => {
+      if (!this.engine || !this.isReady) {
+        throw new Error('Model not initialized. Call initModel() first.');
       }
 
-      return fullReply;
-    } catch (error) {
-      throw new Error(
-        `Generation failed: ${error instanceof Error ? error.message : String(error)}`
-      );
-    } finally {
-      this.abortController = null;
-    }
-  }
+      try {
+        // Use dynamic token limits if available
+        const maxTokens = options.max_tokens ?? this.tokenLimits?.recommendedOutput ?? 1000;
 
-  /**
-   * Stop the current generation
-   */
-  stopGeneration(): void {
-    if (this.abortController) {
-      this.abortController.abort();
-    }
+        const chunks = await this.engine.chat.completions.create({
+          messages,
+          temperature: options.temperature ?? 0.8,
+          top_p: options.top_p ?? 0.9,
+          max_tokens: maxTokens,
+          stream: true,
+          stream_options: { include_usage: true },
+        });
+
+        let fullReply = '';
+
+        for await (const chunk of chunks) {
+          // Check if generation was aborted
+          if (abortController.signal.aborted) {
+            break;
+          }
+
+          const delta = chunk.choices[0]?.delta.content || '';
+          if (delta) {
+            fullReply += delta;
+            onToken(delta);
+          }
+
+          // Report usage from final chunk
+          if (chunk.usage) {
+            const usage: TokenUsage = {
+              promptTokens: chunk.usage.prompt_tokens || 0,
+              completionTokens: chunk.usage.completion_tokens || 0,
+              totalTokens: chunk.usage.total_tokens || 0,
+            };
+            traceLogger.debug('LLM', 'Generation usage', usage);
+            if (onUsage) {
+              onUsage(usage);
+            }
+          }
+        }
+
+        return fullReply;
+      } catch (error) {
+        throw new Error(
+          `Generation failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+      } finally {
+        this.activeAbortControllers.delete(abortController);
+      }
+    };
+
+    return {
+      replyPromise: execute(),
+      /**
+       * Stop the current generation
+       */
+      stopGeneration: () => {
+        abortController.abort();
+      },
+    };
   }
 
   /**
@@ -201,7 +210,10 @@ export class LLMService {
    * Cleanup resources
    */
   cleanup(): void {
-    this.stopGeneration();
+    for (const abortController of this.activeAbortControllers) {
+      abortController.abort();
+    }
+    this.activeAbortControllers = new Set();
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;
