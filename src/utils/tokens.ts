@@ -34,10 +34,28 @@ export interface TokenBudget {
   total: number;
 }
 
+type TokenBudgetKey = Exclude<keyof TokenBudget, 'total'>;
+
+const TOKEN_BUDGET_PERCENTAGES: Record<TokenBudgetKey, number> = {
+  systemPrompt: 0.05,
+  summary: 0.15,
+  retrieval: 0.2,
+  buffer: 0.5,
+  userMessageReserve: 0.1,
+};
+
 export function calculateTokenBudget(maxInputTokens: number): TokenBudget {
-  // TODO(student): split the max input window into per-section allowances (system/summary/retrieval/buffer/userReserve). See the lecture materials.
-  void maxInputTokens;
-  throw new Error('TODO(student): implement calculateTokenBudget');
+  const budget = Object.fromEntries(
+    Object.entries(TOKEN_BUDGET_PERCENTAGES).map(([key, percentage]) => [
+      key,
+      Math.floor(maxInputTokens * percentage),
+    ])
+  ) as Record<TokenBudgetKey, number>;
+
+  return {
+    ...budget,
+    total: Object.values(budget).reduce((sum, value) => sum + value, 0),
+  };
 }
 
 /**
