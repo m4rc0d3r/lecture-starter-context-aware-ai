@@ -11,7 +11,12 @@
 import { db, type Message } from '../db/db';
 import { checkNeedsSummary, updateRollingSummary, getLatestSummary } from '../llm/summary';
 import { extractAndSaveFacts } from '../llm/facts';
-import { retrieveRelevant, type RetrievalConfig, type RetrievalResult, removeEmbedding } from '../embed/retriever';
+import {
+  retrieveRelevant,
+  type RetrievalConfig,
+  type RetrievalResult,
+  removeEmbedding,
+} from '../embed/retriever';
 import { addEmbedding } from '../embed/retriever';
 import { embedService } from '../embed/embed-service';
 import { calculateTokenBudget } from '../utils/tokens';
@@ -179,10 +184,7 @@ export async function processAssistantMessage(
 /**
  * Process user message embedding (called after message is saved)
  */
-export async function embedUserMessage(
-  userMessage: Message,
-  threadId: string
-): Promise<void> {
+export async function embedUserMessage(userMessage: Message, threadId: string): Promise<void> {
   try {
     if (!userMessage.id) {
       traceLogger.warn('MemoryManager', 'Cannot embed message without ID');
@@ -280,7 +282,8 @@ export async function getMemoryStats(threadId: string): Promise<{
 /**
  * Update memory stats callback (set from Chat component)
  */
-let updateStatsCallback: ((stats: Awaited<ReturnType<typeof getMemoryStats>>) => void) | null = null;
+let updateStatsCallback: ((stats: Awaited<ReturnType<typeof getMemoryStats>>) => void) | null =
+  null;
 
 export function setStatsUpdateCallback(callback: typeof updateStatsCallback) {
   updateStatsCallback = callback;
@@ -296,10 +299,7 @@ async function notifyStatsUpdate(threadId: string) {
 /**
  * Delete a message and update memory system
  */
-export async function deleteMessageFromMemory(
-  messageId: number,
-  threadId: string
-): Promise<void> {
+export async function deleteMessageFromMemory(messageId: number, threadId: string): Promise<void> {
   try {
     traceLogger.info('MemoryManager', 'Deleting message from memory', { messageId });
 

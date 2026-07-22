@@ -49,9 +49,16 @@ export default function Chat() {
 
   // Set up memory stats callback
   useEffect(() => {
-    setStatsUpdateCallback((stats: { messageCount: number; summaryCount: number; factCount: number; embeddingCount: number }) => {
-      setMemoryStats(stats);
-    });
+    setStatsUpdateCallback(
+      (stats: {
+        messageCount: number;
+        summaryCount: number;
+        factCount: number;
+        embeddingCount: number;
+      }) => {
+        setMemoryStats(stats);
+      }
+    );
 
     // Load initial stats
     getMemoryStats(currentThreadId).then(setMemoryStats);
@@ -115,7 +122,9 @@ export default function Chat() {
           const recommendedInput = tokenLimits?.recommendedInput ?? 2000;
           setMaxInputTokens(recommendedInput);
 
-          traceLogger.info('Chat', 'LLM model initialized successfully', { maxInputTokens: recommendedInput });
+          traceLogger.info('Chat', 'LLM model initialized successfully', {
+            maxInputTokens: recommendedInput,
+          });
         } catch (error) {
           traceLogger.error('Chat', 'Failed to initialize model', error);
           setModelStatus('error');
@@ -186,7 +195,11 @@ export default function Chat() {
         // Use LLM to generate summary (non-streaming)
         // Note: WebLLM requires last message to be user/assistant, not system
         const context = [{ role: 'user' as const, content: prompt }];
-        return llmService.current.generateResponse(context, () => {}, () => {});
+        return llmService.current.generateResponse(
+          context,
+          () => {},
+          () => {}
+        );
       };
 
       const { retrievedSnippets, summary } = await processUserMessage(
@@ -304,10 +317,7 @@ export default function Chat() {
       await deleteMessageFromMemory(msgId, currentThreadId);
 
       // Reload messages from database
-      const msgs = await db.messages
-        .where('threadId')
-        .equals(currentThreadId)
-        .sortBy('timestamp');
+      const msgs = await db.messages.where('threadId').equals(currentThreadId).sortBy('timestamp');
       setMessages(msgs);
 
       traceLogger.info('Chat', 'Message deleted', { msgId });
@@ -371,68 +381,68 @@ export default function Chat() {
           </div>
         </div>
 
-      <div className="messages-list">
-        {messages.map((msg, idx) => (
-          <div key={msg.id || idx} className={`message message-${msg.role}`}>
-            <div className="message-header">
-              <div className="message-role">{msg.role}</div>
-              {msg.role === 'user' && msg.id && !isGenerating && (
-                <button
-                  onClick={() => handleDeleteMessage(msg.id!)}
-                  className="delete-button"
-                  title="Delete message and response"
-                >
-                  🗑️
-                </button>
-              )}
+        <div className="messages-list">
+          {messages.map((msg, idx) => (
+            <div key={msg.id || idx} className={`message message-${msg.role}`}>
+              <div className="message-header">
+                <div className="message-role">{msg.role}</div>
+                {msg.role === 'user' && msg.id && !isGenerating && (
+                  <button
+                    onClick={() => handleDeleteMessage(msg.id!)}
+                    className="delete-button"
+                    title="Delete message and response"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+              <div className="message-text">{msg.text}</div>
+              <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
             </div>
-            <div className="message-text">{msg.text}</div>
-            <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
-          </div>
-        ))}
-        {/* Show streaming message */}
-        {isGenerating && currentStreamedMessage && (
-          <div className="message message-assistant streaming">
-            <div className="message-role">assistant</div>
-            <div className="message-text">{currentStreamedMessage}</div>
-            <div className="message-time">streaming...</div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="chat-input">
-        <textarea
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            setInputError(null); // Clear error on input change
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            modelStatus === 'ready'
-              ? 'Type your message... Enter to send, Shift+Enter for new line'
-              : 'Waiting for model to load...'
-          }
-          rows={3}
-          disabled={modelStatus !== 'ready' || isGenerating}
-          className={inputError ? 'input-error' : ''}
-        />
-        {inputError && <div className="error-text">{inputError}</div>}
-        <div className="input-buttons">
-          {isGenerating ? (
-            <button onClick={handleStop} className="stop-button">
-              Stop
-            </button>
-          ) : (
-            <button onClick={handleSend} disabled={!input.trim() || modelStatus !== 'ready'}>
-              Send
-            </button>
+          ))}
+          {/* Show streaming message */}
+          {isGenerating && currentStreamedMessage && (
+            <div className="message message-assistant streaming">
+              <div className="message-role">assistant</div>
+              <div className="message-text">{currentStreamedMessage}</div>
+              <div className="message-time">streaming...</div>
+            </div>
           )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="chat-input">
+          <textarea
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setInputError(null); // Clear error on input change
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              modelStatus === 'ready'
+                ? 'Type your message... Enter to send, Shift+Enter for new line'
+                : 'Waiting for model to load...'
+            }
+            rows={3}
+            disabled={modelStatus !== 'ready' || isGenerating}
+            className={inputError ? 'input-error' : ''}
+          />
+          {inputError && <div className="error-text">{inputError}</div>}
+          <div className="input-buttons">
+            {isGenerating ? (
+              <button onClick={handleStop} className="stop-button">
+                Stop
+              </button>
+            ) : (
+              <button onClick={handleSend} disabled={!input.trim() || modelStatus !== 'ready'}>
+                Send
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-    <MemoryInspector />
+      <MemoryInspector />
     </>
   );
 }

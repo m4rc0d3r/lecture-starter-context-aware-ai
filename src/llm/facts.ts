@@ -118,10 +118,7 @@ export async function extractAndSaveFacts(
  */
 export async function getThreadFacts(threadId: string): Promise<Fact[]> {
   try {
-    const facts = await db.facts
-      .where('threadId')
-      .equals(threadId)
-      .toArray();
+    const facts = await db.facts.where('threadId').equals(threadId).toArray();
 
     return facts;
   } catch (error) {
@@ -133,18 +130,13 @@ export async function getThreadFacts(threadId: string): Promise<Fact[]> {
 /**
  * Search facts by key
  */
-export async function searchFactsByKey(
-  threadId: string,
-  keyPattern: string
-): Promise<Fact[]> {
+export async function searchFactsByKey(threadId: string, keyPattern: string): Promise<Fact[]> {
   try {
     const allFacts = await getThreadFacts(threadId);
 
     // Filter by key pattern (case-insensitive)
     const pattern = keyPattern.toLowerCase();
-    const matches = allFacts.filter(f =>
-      f.key.toLowerCase().includes(pattern)
-    );
+    const matches = allFacts.filter((f) => f.key.toLowerCase().includes(pattern));
 
     return matches;
   } catch (error) {
@@ -156,10 +148,7 @@ export async function searchFactsByKey(
 /**
  * Get recent facts (last N)
  */
-export async function getRecentFacts(
-  threadId: string,
-  limit = 10
-): Promise<Fact[]> {
+export async function getRecentFacts(threadId: string, limit = 10): Promise<Fact[]> {
   try {
     const facts = await db.facts
       .where('threadId')
@@ -196,7 +185,5 @@ export function formatFacts(facts: Fact[]): string {
     return 'No facts extracted yet.';
   }
 
-  return facts
-    .map(f => `• ${f.key}: ${f.value}`)
-    .join('\n');
+  return facts.map((f) => `• ${f.key}: ${f.value}`).join('\n');
 }

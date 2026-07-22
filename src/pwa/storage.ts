@@ -21,10 +21,7 @@ export async function requestPersistence(): Promise<boolean> {
 
   try {
     const isPersisted = await navigator.storage.persist();
-    traceLogger.info(
-      'Storage',
-      `Persistent storage ${isPersisted ? 'granted' : 'denied'}`
-    );
+    traceLogger.info('Storage', `Persistent storage ${isPersisted ? 'granted' : 'denied'}`);
     return isPersisted;
   } catch (error) {
     traceLogger.error('Storage', 'Failed to request persistent storage', error);

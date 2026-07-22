@@ -51,13 +51,13 @@ export async function deleteMessage(messageId: number): Promise<void> {
       await db.facts.where('sourceMsgId').equals(assistantMessageId).delete();
       await db.messages.delete(assistantMessageId);
       traceLogger.info('DbOperations', 'Deleted follow-up assistant message', {
-        assistantMessageId
+        assistantMessageId,
       });
     }
 
     traceLogger.info('DbOperations', 'Message deleted successfully', {
       messageId,
-      deletedFollowUp: !!assistantMessageId
+      deletedFollowUp: !!assistantMessageId,
     });
   } catch (error) {
     traceLogger.error('DbOperations', 'Failed to delete message', { messageId, error });
@@ -76,8 +76,5 @@ export async function deleteMessagePair(userMessageId: number): Promise<void> {
  * Get all messages for a thread ordered by timestamp
  */
 export async function getThreadMessages(threadId: string): Promise<Message[]> {
-  return db.messages
-    .where('threadId')
-    .equals(threadId)
-    .sortBy('timestamp');
+  return db.messages.where('threadId').equals(threadId).sortBy('timestamp');
 }

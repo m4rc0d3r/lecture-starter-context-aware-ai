@@ -60,20 +60,17 @@ export async function initRetriever(threadId = 'default-thread'): Promise<void> 
       traceLogger.info('Retriever', 'No saved index in IDBFS, checking database...');
 
       // Check if we have embeddings in the database
-      const embeddingCount = await db.embeddings
-        .where('threadId')
-        .equals(threadId)
-        .count();
+      const embeddingCount = await db.embeddings.where('threadId').equals(threadId).count();
 
       if (embeddingCount > 0) {
         // Rebuild index from database embeddings
-        traceLogger.info('Retriever', `Found ${embeddingCount} embeddings in database, rebuilding index...`);
+        traceLogger.info(
+          'Retriever',
+          `Found ${embeddingCount} embeddings in database, rebuilding index...`
+        );
         await annIndex.init();
 
-        const embeddings = await db.embeddings
-          .where('threadId')
-          .equals(threadId)
-          .toArray();
+        const embeddings = await db.embeddings.where('threadId').equals(threadId).toArray();
 
         for (const emb of embeddings) {
           const vector = new Float32Array(await emb.vec.arrayBuffer());
@@ -124,10 +121,7 @@ export async function rebuildIndex(threadId = 'default-thread'): Promise<void> {
     }
 
     // Load all embeddings
-    const embeddings = await db.embeddings
-      .where('threadId')
-      .equals(threadId)
-      .toArray();
+    const embeddings = await db.embeddings.where('threadId').equals(threadId).toArray();
 
     traceLogger.info('Retriever', 'Found embeddings to rebuild', {
       count: embeddings.length,
@@ -233,7 +227,10 @@ function calculateCombinedScore(
   beta: number
 ): number {
   // TODO(student): return alpha*cosineSimilarity + beta*recencyBoost. See the lecture materials.
-  void cosineSimilarity; void recencyBoost; void alpha; void beta;
+  void cosineSimilarity;
+  void recencyBoost;
+  void alpha;
+  void beta;
   throw new Error('TODO(student): implement calculateCombinedScore');
 }
 
@@ -242,7 +239,8 @@ function calculateCombinedScore(
  */
 function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   // TODO(student): return cosine similarity between two vectors (dot product of normalized vectors). See the lecture materials.
-  void a; void b;
+  void a;
+  void b;
   throw new Error('TODO(student): implement cosineSimilarity');
 }
 
@@ -268,10 +266,7 @@ async function applyMMR(
   for (const candidate of candidates) {
     if (!candidate.message.id) continue;
 
-    const embedding = await db.embeddings
-      .where('msgId')
-      .equals(candidate.message.id)
-      .first();
+    const embedding = await db.embeddings.where('msgId').equals(candidate.message.id).first();
 
     if (embedding) {
       const vector = new Float32Array(await embedding.vec.arrayBuffer());
@@ -354,7 +349,7 @@ export async function retrieveRelevant(
       query,
       k,
       useRecencyBoost,
-      useMMR
+      useMMR,
     });
 
     // Embed the query
@@ -415,7 +410,7 @@ export async function retrieveRelevant(
     traceLogger.info('Retriever', 'Retrieval completed', {
       query,
       found: finalResults.length,
-      scores: finalResults.map(r => r.score.toFixed(3)),
+      scores: finalResults.map((r) => r.score.toFixed(3)),
       useRecencyBoost,
       useMMR,
     });

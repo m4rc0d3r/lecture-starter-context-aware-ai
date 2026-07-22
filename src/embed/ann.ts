@@ -134,7 +134,9 @@ export class ANNIndex {
     }
 
     if (queryVector.length !== this.dim) {
-      throw new Error(`Query vector dimension mismatch: expected ${this.dim}, got ${queryVector.length}`);
+      throw new Error(
+        `Query vector dimension mismatch: expected ${this.dim}, got ${queryVector.length}`
+      );
     }
 
     if (this.currentSize === 0) {
@@ -228,7 +230,7 @@ export class ANNIndex {
 
     // Wait if save is in progress
     while (this.isSaving) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     try {

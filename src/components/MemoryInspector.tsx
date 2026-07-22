@@ -65,7 +65,11 @@ function MemoryInspector() {
 
       <div className="inspector-content">
         {loading && <div className="empty-state">Loading memory data...</div>}
-        {error && <div className="empty-state" style={{ color: '#f87171' }}>Error: {error}</div>}
+        {error && (
+          <div className="empty-state" style={{ color: '#f87171' }}>
+            Error: {error}
+          </div>
+        )}
 
         {!loading && !error && (
           <>
@@ -105,7 +109,9 @@ function MemoryInspector() {
               {summary ? (
                 <div className="summary-content">{summary}</div>
               ) : (
-                <div className="empty-state">No summary yet. Summary will be generated automatically when conversation grows.</div>
+                <div className="empty-state">
+                  No summary yet. Summary will be generated automatically when conversation grows.
+                </div>
               )}
             </div>
 
@@ -118,9 +124,7 @@ function MemoryInspector() {
                     <div key={idx} className="snippet-item">
                       <div className="snippet-header">
                         <span className="snippet-index">#{idx + 1}</span>
-                        <span className="snippet-score">
-                          Score: {result.score.toFixed(3)}
-                        </span>
+                        <span className="snippet-score">Score: {result.score.toFixed(3)}</span>
                         <span className="snippet-time">
                           {new Date(result.message.timestamp).toLocaleString()}
                         </span>
@@ -132,7 +136,10 @@ function MemoryInspector() {
                   ))}
                 </div>
               ) : (
-                <div className="empty-state">No snippets retrieved yet. Retrieved context will appear here when you ask questions.</div>
+                <div className="empty-state">
+                  No snippets retrieved yet. Retrieved context will appear here when you ask
+                  questions.
+                </div>
               )}
             </div>
 
@@ -144,7 +151,9 @@ function MemoryInspector() {
                   <pre>{formatFacts(facts)}</pre>
                 </div>
               ) : (
-                <div className="empty-state">No facts extracted yet. Facts will be extracted automatically from conversations.</div>
+                <div className="empty-state">
+                  No facts extracted yet. Facts will be extracted automatically from conversations.
+                </div>
               )}
             </div>
 

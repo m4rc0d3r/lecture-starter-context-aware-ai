@@ -15,9 +15,7 @@ export async function registerServiceWorker(): Promise<void> {
   wb.addEventListener('waiting', () => {
     traceLogger.info('PWA', 'New service worker waiting');
     // Show update notification (can be connected to UI later)
-    const update = confirm(
-      'New version available! Reload to update?'
-    );
+    const update = confirm('New version available! Reload to update?');
     if (update) {
       wb?.messageSkipWaiting();
       window.location.reload();

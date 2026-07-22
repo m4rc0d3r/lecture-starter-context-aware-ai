@@ -65,7 +65,10 @@ let isReady = false;
 async function initPipeline(): Promise<void> {
   try {
     console.log('[EmbedWorker] Initializing pipeline...');
-    postMessage({ type: 'progress', payload: { step: 'Downloading model...' } } satisfies WorkerResponse);
+    postMessage({
+      type: 'progress',
+      payload: { step: 'Downloading model...' },
+    } satisfies WorkerResponse);
 
     // Try WebGPU first, fallback to WASM
     let device: 'webgpu' | 'wasm' = 'wasm';
@@ -95,7 +98,7 @@ async function initPipeline(): Promise<void> {
     const errorInfo: ErrorInfo = { message: `Initialization failed: ${error}` };
     postMessage({
       type: 'error',
-      payload: errorInfo
+      payload: errorInfo,
     } satisfies WorkerResponse);
   }
 }
@@ -190,7 +193,7 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     const errorInfo: ErrorInfo = { message: String(error) };
     postMessage({
       type: 'error',
-      payload: errorInfo
+      payload: errorInfo,
     } satisfies WorkerResponse);
   }
 };

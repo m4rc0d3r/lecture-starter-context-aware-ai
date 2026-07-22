@@ -43,22 +43,17 @@ export function calculateTokenBudget(maxInputTokens: number): TokenBudget {
 /**
  * Check if buffer needs summarization
  */
-export function needsSummary(
-  bufferTokens: number,
-  budgetAllowance: number
-): boolean {
+export function needsSummary(bufferTokens: number, budgetAllowance: number): boolean {
   // TODO(student): decide whether the conversation should be summarized. See the lecture materials.
-  void bufferTokens; void budgetAllowance;
+  void bufferTokens;
+  void budgetAllowance;
   throw new Error('TODO(student): implement needsSummary');
 }
 
 /**
  * Calculate retrieval budget for k snippets
  */
-export function calculateRetrievalBudget(
-  retrievalBudget: number,
-  k: number
-): number {
+export function calculateRetrievalBudget(retrievalBudget: number, k: number): number {
   // Divide retrieval budget equally among k snippets
   return Math.floor(retrievalBudget / Math.max(k, 1));
 }
@@ -72,10 +67,7 @@ export interface TokenStats {
   percentage: number;
 }
 
-export function getTokenStats(
-  usedTokens: number,
-  totalBudget: number
-): TokenStats {
+export function getTokenStats(usedTokens: number, totalBudget: number): TokenStats {
   return {
     used: usedTokens,
     available: totalBudget - usedTokens,
@@ -86,10 +78,7 @@ export function getTokenStats(
 /**
  * Validate if text fits within token limit
  */
-export function validateTokenLimit(
-  text: string,
-  limit: number
-): string | null {
+export function validateTokenLimit(text: string, limit: number): string | null {
   const tokens = estimateTokens(text);
   if (tokens > limit) {
     return `Text too long: ${tokens} tokens (max ${limit} tokens)`;
@@ -106,7 +95,8 @@ export function trimToTokenBudget<T extends { text: string }>(
   tokenBudget: number
 ): T[] {
   // TODO(student): trim text/messages so they fit within a token budget. See the lecture materials.
-  void messages; void tokenBudget;
+  void messages;
+  void tokenBudget;
   throw new Error('TODO(student): implement trimToTokenBudget');
 }
 
@@ -133,6 +123,7 @@ export function selectMessagesForSummary<T extends { text: string }>(
   targetTokenReduction: number
 ): T[] {
   // TODO(student): choose the oldest messages to fold into the summary. See the lecture materials.
-  void messages; void targetTokenReduction;
+  void messages;
+  void targetTokenReduction;
   throw new Error('TODO(student): implement selectMessagesForSummary');
 }

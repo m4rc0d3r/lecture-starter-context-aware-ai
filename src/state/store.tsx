@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, type ReactNode, type Dispatch, type SetStateAction } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { DEFAULT_MEMORY_CONFIG, type MemoryConfig } from '../memory/memory-manager';
 
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -138,11 +146,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setMemoryStats,
   };
 
-  return (
-    <AppStateContext.Provider value={value}>
-      {children}
-    </AppStateContext.Provider>
-  );
+  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

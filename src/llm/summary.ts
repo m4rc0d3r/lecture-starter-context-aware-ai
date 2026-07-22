@@ -19,21 +19,14 @@ export async function checkNeedsSummary(
 ): Promise<boolean> {
   try {
     // Get all messages for thread
-    const messages = await db.messages
-      .where('threadId')
-      .equals(threadId)
-      .sortBy('timestamp');
+    const messages = await db.messages.where('threadId').equals(threadId).sortBy('timestamp');
 
     // Get latest summary if exists
-    const latestSummary = await db.summaries
-      .where('threadId')
-      .equals(threadId)
-      .reverse()
-      .first();
+    const latestSummary = await db.summaries.where('threadId').equals(threadId).reverse().first();
 
     // Filter messages that aren't already summarized
     const unsummarizedMessages = latestSummary
-      ? messages.filter(m => m.timestamp > latestSummary.upToTs)
+      ? messages.filter((m) => m.timestamp > latestSummary.upToTs)
       : messages;
 
     // Calculate total tokens in unsummarized messages
@@ -65,9 +58,7 @@ export async function generateSummary(
     traceLogger.info('Summary', 'Generating summary', { messageCount: messages.length });
 
     // Format messages into readable conversation
-    const conversation = messages
-      .map(m => `${m.role}: ${m.text}`)
-      .join('\n\n');
+    const conversation = messages.map((m) => `${m.role}: ${m.text}`).join('\n\n');
 
     // Construct prompt
     const prompt = `${SUMMARY_PROMPT}\n\nConversation:\n${conversation}`;
@@ -100,25 +91,18 @@ export async function updateRollingSummary(
     traceLogger.info('Summary', 'Updating rolling summary', { threadId });
 
     // Get all messages
-    const allMessages = await db.messages
-      .where('threadId')
-      .equals(threadId)
-      .sortBy('timestamp');
+    const allMessages = await db.messages.where('threadId').equals(threadId).sortBy('timestamp');
 
     if (allMessages.length === 0) {
       return null;
     }
 
     // Get latest summary if exists
-    const latestSummary = await db.summaries
-      .where('threadId')
-      .equals(threadId)
-      .reverse()
-      .first();
+    const latestSummary = await db.summaries.where('threadId').equals(threadId).reverse().first();
 
     // Filter messages that aren't summarized yet
     const unsummarizedMessages = latestSummary
-      ? allMessages.filter(m => m.timestamp > latestSummary.upToTs)
+      ? allMessages.filter((m) => m.timestamp > latestSummary.upToTs)
       : allMessages;
 
     if (unsummarizedMessages.length === 0) {
@@ -178,11 +162,7 @@ export async function updateRollingSummary(
  */
 export async function getLatestSummary(threadId: string): Promise<Summary | null> {
   try {
-    const summary = await db.summaries
-      .where('threadId')
-      .equals(threadId)
-      .reverse()
-      .first();
+    const summary = await db.summaries.where('threadId').equals(threadId).reverse().first();
 
     return summary || null;
   } catch (error) {
@@ -206,10 +186,7 @@ export async function rebuildSummary(
     await db.summaries.where('threadId').equals(threadId).delete();
 
     // Get all messages
-    const messages = await db.messages
-      .where('threadId')
-      .equals(threadId)
-      .sortBy('timestamp');
+    const messages = await db.messages.where('threadId').equals(threadId).sortBy('timestamp');
 
     if (messages.length === 0) {
       return;

@@ -19,10 +19,13 @@ export interface EmbedServiceState {
 class EmbedService {
   private worker: Worker | null = null;
   private state: EmbedServiceState = { status: 'initializing' };
-  private pendingRequests = new Map<string, {
-    resolve: (result: EmbedResponse) => void;
-    reject: (error: Error) => void;
-  }>();
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (result: EmbedResponse) => void;
+      reject: (error: Error) => void;
+    }
+  >();
   private onStateChangeCallback?: (state: EmbedServiceState) => void;
 
   constructor() {
@@ -36,10 +39,7 @@ class EmbedService {
     try {
       traceLogger.info('EmbedService', 'Creating embedding worker...');
 
-      this.worker = new Worker(
-        new URL('./worker-embed.ts', import.meta.url),
-        { type: 'module' }
-      );
+      this.worker = new Worker(new URL('./worker-embed.ts', import.meta.url), { type: 'module' });
 
       this.worker.onmessage = this.handleWorkerMessage.bind(this);
       this.worker.onerror = this.handleWorkerError.bind(this);
@@ -63,7 +63,7 @@ class EmbedService {
         const deviceInfo = payload as { device?: string };
         this.updateState({
           status: 'ready',
-          device: (deviceInfo?.device as 'webgpu' | 'wasm') || 'wasm'
+          device: (deviceInfo?.device as 'webgpu' | 'wasm') || 'wasm',
         });
         break;
       }
@@ -148,7 +148,7 @@ class EmbedService {
 
     traceLogger.debug('EmbedService', 'Embedding text', {
       id: requestId,
-      textLength: text.length
+      textLength: text.length,
     });
 
     return new Promise((resolve, reject) => {
@@ -185,9 +185,7 @@ class EmbedService {
 
     traceLogger.debug('EmbedService', 'Embedding batch', { count: texts.length });
 
-    const results = await Promise.all(
-      texts.map(({ text, id }) => this.embedText(text, id))
-    );
+    const results = await Promise.all(texts.map(({ text, id }) => this.embedText(text, id)));
 
     return results;
   }

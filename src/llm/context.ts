@@ -56,13 +56,14 @@ export interface ContextConfig {
  * 4. Recent buffer messages
  * 5. New user message (added by caller)
  */
-export function assembleContext(
-  recentMessages: Message[],
-  config: ContextConfig
-): ChatMessage[] {
+export function assembleContext(recentMessages: Message[], config: ContextConfig): ChatMessage[] {
   // TODO(student): build the prompt context in layer order (system -> rolling summary -> retrieved snippets -> recent buffer) within the per-section token budget, de-duplicating by timestamp and trimming gracefully when space runs out. See the lecture materials.
-  void recentMessages; void config;
-  void SYSTEM_PROMPT; void trimToTokenBudget; void traceLogger; void getTimeAgo;
+  void recentMessages;
+  void config;
+  void SYSTEM_PROMPT;
+  void trimToTokenBudget;
+  void traceLogger;
+  void getTimeAgo;
   throw new Error('TODO(student): implement assembleContext');
 }
 

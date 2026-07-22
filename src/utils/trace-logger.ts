@@ -78,11 +78,11 @@ class TraceLogger {
     let filtered = this.events;
 
     if (category) {
-      filtered = filtered.filter(e => e.category === category);
+      filtered = filtered.filter((e) => e.category === category);
     }
 
     if (level) {
-      filtered = filtered.filter(e => e.level === level);
+      filtered = filtered.filter((e) => e.level === level);
     }
 
     return filtered;
