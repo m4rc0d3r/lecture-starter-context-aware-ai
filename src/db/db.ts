@@ -24,6 +24,7 @@ export interface Fact {
   key: string;
   value: string;
   sourceMsgId: number;
+  lastUpdatedAt: number;
 }
 
 // Embedding vector interface

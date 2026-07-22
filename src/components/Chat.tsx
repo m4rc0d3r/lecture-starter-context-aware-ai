@@ -16,6 +16,7 @@ import {
 import { deleteMessage } from '../db/operations.ts';
 import { traceLogger } from '../utils/trace-logger.ts';
 import MemoryInspector from './MemoryInspector.tsx';
+import { getThreadFacts } from '../llm/facts.ts';
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -221,6 +222,7 @@ export default function Chat() {
       const contextConfig: ContextConfig = {
         maxInputTokens,
         summary,
+        facts: await getThreadFacts(currentThreadId),
         retrievedSnippets,
       };
 

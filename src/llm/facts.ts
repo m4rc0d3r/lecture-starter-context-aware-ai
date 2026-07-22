@@ -76,6 +76,7 @@ function parseFacts(response: string, sourceMsgId: number, threadId: string): Fa
         key: key.trim(),
         value: value.trim(),
         sourceMsgId,
+        lastUpdatedAt: Date.now(),
       });
     }
   }

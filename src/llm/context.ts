@@ -1,4 +1,4 @@
-import { type Message, type Summary } from '../db/db';
+import { type Fact, type Message, type Summary } from '../db/db';
 import { SYSTEM_PROMPT } from './prompts';
 import { type RetrievalResult } from '../embed/retriever';
 import {
@@ -42,6 +42,7 @@ export function validateUserInput(text: string, maxInputTokens?: number): string
 export interface ContextConfig {
   maxInputTokens: number;
   summary?: Summary | null;
+  facts: Fact[];
   retrievedSnippets?: RetrievalResult[];
 }
 
@@ -65,6 +66,7 @@ export function assembleContext(recentMessages: Message[], config: ContextConfig
     config.retrievedSnippets ?? [],
     budget.retrieval
   );
+  const formattedFacts = getFormattedFacts(config.facts, budget.facts);
   const recentBuffer = buildRecentBuffer(recentMessages, originalSummary, budget.buffer);
 
   const keptSummaryPrefix =
@@ -73,6 +75,7 @@ export function assembleContext(recentMessages: Message[], config: ContextConfig
     SYSTEM_PROMPT,
     keptSummary ? `## Summary\n\n${keptSummaryPrefix}${keptSummary}` : '',
     snippetsThatFit.length > 0 ? `## Relevant context\n\n${snippetsThatFit.join('\n\n')}` : '',
+    formattedFacts.length > 0 ? `Known facts about the user:\n${formattedFacts.join('\n')}` : '',
   ].join('\n\n');
 
   const context: ChatMessage[] = [
@@ -114,6 +117,14 @@ export function assembleContext(recentMessages: Message[], config: ContextConfig
       trimmed: originalSummary
         ? recentMessages.filter((message) => message.timestamp <= originalSummary.upToTs)
         : recentMessages,
+    });
+  }
+
+  if (formattedFacts.length === 0) {
+    traceLogger.info('Context', 'No facts injected');
+  } else {
+    traceLogger.info('Context', `Some facts were injected`, {
+      facts: formattedFacts,
     });
   }
 
@@ -161,6 +172,33 @@ function getFormattedSnippetsThatFit(snippets: RetrievalResult[], tokenBudget: n
   }
 
   return formattedSnippets;
+}
+
+function getFormattedFacts(facts: Fact[], tokenBudget: number): string[] {
+  if (facts.length === 0) {
+    return [];
+  }
+
+  const sortedFacts = [...facts].sort((a, b) => b.lastUpdatedAt - a.lastUpdatedAt);
+
+  const formattedFacts: string[] = [];
+  let tokens = 0;
+
+  for (let i = 0; i < sortedFacts.length; ++i) {
+    const { key, value } = sortedFacts[i];
+    const formatted = `- ${key}: ${value}`;
+
+    const factTokens = estimateTokens(formatted);
+
+    if (tokens + factTokens > tokenBudget) {
+      break;
+    }
+
+    formattedFacts.push(formatted);
+    tokens += factTokens;
+  }
+
+  return formattedFacts;
 }
 
 function buildRecentBuffer(

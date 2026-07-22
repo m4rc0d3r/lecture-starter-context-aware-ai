@@ -27,17 +27,19 @@ export interface TokenBudget {
   systemPrompt: number;
   summary: number;
   retrieval: number;
+  facts: number;
   buffer: number;
   userMessageReserve: number;
   total: number;
 }
 
-type TokenBudgetKey = Exclude<keyof TokenBudget, 'total'>;
+export type SectionTokenBudgetKey = Exclude<keyof TokenBudget, 'total'>;
 
-const TOKEN_BUDGET_PERCENTAGES: Record<TokenBudgetKey, number> = {
+export const TOKEN_BUDGET_PERCENTAGES: Record<SectionTokenBudgetKey, number> = {
   systemPrompt: 0.05,
-  summary: 0.15,
-  retrieval: 0.2,
+  summary: 0.125,
+  retrieval: 0.175,
+  facts: 0.05,
   buffer: 0.5,
   userMessageReserve: 0.1,
 };
@@ -48,7 +50,7 @@ export function calculateTokenBudget(maxInputTokens: number): TokenBudget {
       key,
       Math.floor(maxInputTokens * percentage),
     ])
-  ) as Record<TokenBudgetKey, number>;
+  ) as Record<SectionTokenBudgetKey, number>;
 
   return {
     ...budget,

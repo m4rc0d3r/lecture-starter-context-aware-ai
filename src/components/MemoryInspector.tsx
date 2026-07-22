@@ -13,7 +13,13 @@ import { useAppState } from '../state/store';
 import { getLatestSummary } from '../llm/summary';
 import { getThreadFacts, formatFacts } from '../llm/facts';
 import { getLastRetrievalResults } from '../memory/memory-manager';
-import { calculateTokenBudget, estimateTokens, getTokenStats } from '../utils/tokens';
+import {
+  calculateTokenBudget,
+  estimateTokens,
+  getTokenStats,
+  TOKEN_BUDGET_PERCENTAGES,
+  type SectionTokenBudgetKey,
+} from '../utils/tokens';
 import { type Fact } from '../db/db';
 
 function MemoryInspector() {
@@ -161,26 +167,22 @@ function MemoryInspector() {
             <div className="inspector-section">
               <h4>⚡ Token Budget Allocation</h4>
               <div className="budget-grid">
-                <div className="budget-item">
-                  <span className="budget-label">System Prompt:</span>
-                  <span className="budget-value">{budget.systemPrompt} tokens (5%)</span>
-                </div>
-                <div className="budget-item">
-                  <span className="budget-label">Summary:</span>
-                  <span className="budget-value">{budget.summary} tokens (15%)</span>
-                </div>
-                <div className="budget-item">
-                  <span className="budget-label">Retrieval:</span>
-                  <span className="budget-value">{budget.retrieval} tokens (20%)</span>
-                </div>
-                <div className="budget-item">
-                  <span className="budget-label">Buffer:</span>
-                  <span className="budget-value">{budget.buffer} tokens (50%)</span>
-                </div>
-                <div className="budget-item">
-                  <span className="budget-label">User Reserve:</span>
-                  <span className="budget-value">{budget.userMessageReserve} tokens (10%)</span>
-                </div>
+                {Object.entries({
+                  systemPrompt: 'System Prompt',
+                  summary: 'Summary',
+                  retrieval: 'Retrieval',
+                  facts: 'Facts',
+                  buffer: 'Buffer',
+                  userMessageReserve: 'User Reserve',
+                } satisfies Record<SectionTokenBudgetKey, string>).map(([key, label]) => (
+                  <div key={key} className="budget-item">
+                    <span className="budget-label">{label}:</span>
+                    <span className="budget-value">
+                      {budget[key as SectionTokenBudgetKey]} tokens (
+                      {Math.round(TOKEN_BUDGET_PERCENTAGES[key as SectionTokenBudgetKey] * 100)}%)
+                    </span>
+                  </div>
+                ))}
                 <div className="budget-item">
                   <span className="budget-label">Total:</span>
                   <span className="budget-value">{budget.total} tokens</span>
