@@ -232,12 +232,7 @@ function calculateCombinedScore(
   alpha: number,
   beta: number
 ): number {
-  // TODO(student): return alpha*cosineSimilarity + beta*recencyBoost. See the lecture materials.
-  void cosineSimilarity;
-  void recencyBoost;
-  void alpha;
-  void beta;
-  throw new Error('TODO(student): implement calculateCombinedScore');
+  return alpha * cosineSimilarity + beta * recencyBoost;
 }
 
 /**
