@@ -62,3 +62,8 @@ src/
 On each user message: summarize old turns if needed → retrieve relevant past snippets → assemble the prompt context (system + summary + snippets + recent buffer) within the token budget → stream the reply. Afterwards, in the background: embed the new messages and extract durable facts.
 
 The memory model, WebGPU specifics, and browser support are covered in depth in the lecture materials.
+
+## Links to this repository
+
+- [Bitbucket](https://bitbucket.org/m4rc0d3r/lecture-starter-context-aware-ai)
+- [GitHub](https://github.com/m4rc0d3r/lecture-starter-context-aware-ai)
