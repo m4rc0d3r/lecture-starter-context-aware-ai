@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ComponentProps } from 'react';
 import { db, type Message } from '../db/db.ts';
 import { useAppState } from '../state/store.tsx';
 import { getLLMService, type GenerationResult } from '../llm/llm-service.ts';
 import { assembleContext, validateUserInput, type ContextConfig } from '../llm/context.ts';
 import { embedService } from '../embed/embed-service.ts';
-import { initRetriever } from '../embed/retriever.ts';
+import { addEmbedding, initRetriever } from '../embed/retriever.ts';
 import {
   processUserMessage,
   processAssistantMessage,
@@ -17,6 +17,7 @@ import { deleteMessage } from '../db/operations.ts';
 import { traceLogger } from '../utils/trace-logger.ts';
 import MemoryInspector from './MemoryInspector.tsx';
 import { getThreadFacts } from '../llm/facts.ts';
+import { chunkText } from '../utils/chunking.ts';
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,6 +49,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const llmService = useRef(getLLMService());
   const stopGenerationForUser = useRef<GenerationResult['stopGeneration']>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   // Set up memory stats callback
   useEffect(() => {
@@ -270,6 +272,84 @@ export default function Chat() {
     }
   };
 
+  const [isEmbeddingDocuments, setEmbeddingDocuments] = useState(false);
+
+  const handleUploadDocument: ComponentProps<'input'>['onChange'] = async (event) => {
+    const CHUNK_SIZE = 1000;
+    const OVERLAP_COEFFICIENT = 0.15;
+    const OVERLAP_SIZE = CHUNK_SIZE * OVERLAP_COEFFICIENT;
+
+    if (!event.target.files) return;
+
+    setEmbeddingDocuments(true);
+
+    for (const file of event.target.files) {
+      const content = await file.text();
+      const chunks = chunkText(content, CHUNK_SIZE, OVERLAP_SIZE);
+      const { name, size } = file;
+
+      try {
+        const documentId = await db.transaction(
+          'rw',
+          [db.documents, db.documentChunks],
+          async () => {
+            traceLogger.info('Chat', 'Embedding a document', {
+              name,
+              size,
+            });
+
+            const documentId = await db.documents.add({
+              name,
+              threadId: currentThreadId,
+            });
+
+            if (documentId === undefined) {
+              throw new Error('Failed to save document to database');
+            }
+
+            for (let i = 0; i < chunks.length; ++i) {
+              const chunk = chunks[i];
+
+              const documentChunkId = await db.documentChunks.add({
+                documentId,
+                index: i,
+                text: chunk,
+                timestamp: Date.now(),
+              });
+
+              if (documentChunkId === undefined) {
+                throw new Error('Failed to save document chunk to database');
+              }
+            }
+
+            return documentId;
+          }
+        );
+
+        const documentChunks = await db.documentChunks
+          .where('documentId')
+          .equals(documentId)
+          .toArray();
+
+        for (const chunk of documentChunks) {
+          const embedResult = await embedService.embedText(chunk.text);
+          await addEmbedding('documentChunk', chunk.id!, embedResult.embedding, currentThreadId);
+        }
+
+        traceLogger.info('Chat', 'Document embedded', {
+          name,
+          size,
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          traceLogger.error('Chat', 'Failed to embed document.', error.message);
+        }
+      }
+    }
+
+    setEmbeddingDocuments(false);
+  };
+
   // Process memory asynchronously (embedding + fact extraction)
   const processMemoryAsync = async (
     userMsg: Message,
@@ -440,9 +520,29 @@ export default function Chat() {
                 Stop
               </button>
             ) : (
-              <button onClick={handleSend} disabled={!input.trim() || modelStatus !== 'ready'}>
-                Send
-              </button>
+              <>
+                <input
+                  ref={documentInputRef}
+                  id="document-upload"
+                  type="file"
+                  accept=".txt,.md"
+                  hidden
+                  multiple
+                  onChange={handleUploadDocument}
+                />
+                <button
+                  onClick={() => documentInputRef.current?.click()}
+                  disabled={isEmbeddingDocuments}
+                >
+                  Upload document
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || modelStatus !== 'ready' || isEmbeddingDocuments}
+                >
+                  Send
+                </button>
+              </>
             )}
           </div>
         </div>

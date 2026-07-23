@@ -132,11 +132,11 @@ function MemoryInspector() {
                         <span className="snippet-index">#{idx + 1}</span>
                         <span className="snippet-score">Score: {result.score.toFixed(3)}</span>
                         <span className="snippet-time">
-                          {new Date(result.message.timestamp).toLocaleString()}
+                          {new Date(result.timestamp).toLocaleString()}
                         </span>
                       </div>
                       <div className="snippet-text">
-                        <strong>{result.message.role}:</strong> {result.message.text}
+                        <strong>{result.role}:</strong> {result.text}
                       </div>
                     </div>
                   ))}

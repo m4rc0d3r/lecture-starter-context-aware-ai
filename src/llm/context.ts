@@ -157,9 +157,9 @@ function getFormattedSnippetsThatFit(snippets: RetrievalResult[], tokenBudget: n
 
   for (let i = 0; i < snippets.length; ++i) {
     const snippet = snippets[i];
-    const formatted = `[${i + 1}] (${getTimeAgo(snippet.message.timestamp)}, relevance: ${snippet.score.toFixed(
+    const formatted = `[${i + 1}] (${getTimeAgo(snippet.timestamp)}, relevance: ${snippet.score.toFixed(
       2
-    )}): ${snippet.message.text}`;
+    )}): ${snippet.text}`;
 
     const snippetTokens = estimateTokens(formatted);
 

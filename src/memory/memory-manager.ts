@@ -160,7 +160,7 @@ export async function processAssistantMessage(
     // Embed the assistant message
     if (assistantMessage.id) {
       const embedResult = await embedService.embedText(assistantMessage.text);
-      await addEmbedding(assistantMessage.id, embedResult.embedding, threadId);
+      await addEmbedding('message', assistantMessage.id, embedResult.embedding, threadId);
       traceLogger.info('MemoryManager', 'Assistant message embedded');
     }
 
@@ -196,7 +196,7 @@ export async function embedUserMessage(userMessage: Message, threadId: string): 
     });
 
     const embedResult = await embedService.embedText(userMessage.text);
-    await addEmbedding(userMessage.id, embedResult.embedding, threadId);
+    await addEmbedding('message', userMessage.id, embedResult.embedding, threadId);
 
     traceLogger.info('MemoryManager', 'User message embedded');
 

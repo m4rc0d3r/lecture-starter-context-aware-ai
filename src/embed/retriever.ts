@@ -9,16 +9,19 @@
  * - MMR for diversity (future enhancement)
  */
 
-import { db, type Message } from '../db/db';
+import { db, type Embedding, type Message, type Role } from '../db/db';
 import { ANNIndex, type SearchResult } from './ann';
 import { embedService } from './embed-service';
 import { traceLogger } from '../utils/trace-logger';
 
-export interface RetrievalResult {
-  message: Message;
+export type RetrievalResult = {
+  embedding: Embedding;
+  text: string;
+  timestamp: number;
+  role: Role;
   score: number; // Cosine similarity (0-1, higher is better)
   distance: number; // Raw distance from ANN
-}
+};
 
 export interface RetrievalConfig {
   k?: number; // Number of results (default: 5)
@@ -74,7 +77,10 @@ export async function initRetriever(threadId = 'default-thread'): Promise<void> 
 
         for (const emb of embeddings) {
           const vector = new Float32Array(await emb.vec.arrayBuffer());
-          annIndex.addPoint(vector, emb.msgId);
+          if (!emb.id) {
+            continue;
+          }
+          annIndex.addPoint(vector, emb.id);
         }
 
         // Save the rebuilt index to IDBFS
@@ -130,7 +136,10 @@ export async function rebuildIndex(threadId = 'default-thread'): Promise<void> {
     // Add to index
     for (const emb of embeddings) {
       const vector = new Float32Array(await emb.vec.arrayBuffer());
-      annIndex.addPoint(vector, emb.msgId);
+      if (!emb.id) {
+        continue;
+      }
+      annIndex.addPoint(vector, emb.id);
     }
 
     // Save to IDBFS immediately (rebuild should not be debounced)
@@ -149,7 +158,8 @@ export async function rebuildIndex(threadId = 'default-thread'): Promise<void> {
  * Add a message embedding to the index
  */
 export async function addEmbedding(
-  msgId: number,
+  sourceType: Embedding['sourceType'],
+  sourceId: Embedding['sourceId'],
   embedding: Float32Array,
   threadId = 'default-thread'
 ): Promise<void> {
@@ -158,29 +168,32 @@ export async function addEmbedding(
   }
 
   try {
-    // Add to ANN index
-    annIndex!.addPoint(embedding, msgId);
-
     // Save embedding to database
     // Convert to ArrayBuffer explicitly to satisfy TypeScript
     const buffer = embedding.buffer as ArrayBuffer;
     const blob = new Blob([buffer]);
-    await db.embeddings.add({
+    const embId = await db.embeddings.add({
       threadId,
-      msgId,
+      sourceType,
+      sourceId,
       dim: embedding.length,
       vec: blob,
     });
+    if (embId !== undefined) {
+      // Add to ANN index
+      annIndex!.addPoint(embedding, embId);
+    }
 
     // Save updated index to IDBFS
     await annIndex!.save();
 
     traceLogger.info('Retriever', 'Embedding added', {
-      msgId,
+      sourceType,
+      sourceId,
       indexSize: annIndex!.getSize(),
     });
   } catch (error) {
-    traceLogger.error('Retriever', 'Failed to add embedding', { msgId, error });
+    traceLogger.error('Retriever', 'Failed to add embedding', { sourceType, sourceId, error });
     throw error;
   }
 }
@@ -272,13 +285,13 @@ async function applyMMR(
   // Get embeddings for all candidates
   const candidateEmbeddings = new Map<number, Float32Array>();
   for (const candidate of candidates) {
-    if (!candidate.message.id) continue;
+    if (!candidate.embedding.id) continue;
 
-    const embedding = await db.embeddings.where('msgId').equals(candidate.message.id).first();
+    const embedding = await db.embeddings.where('msgId').equals(candidate.embedding.id).first();
 
     if (embedding) {
       const vector = new Float32Array(await embedding.vec.arrayBuffer());
-      candidateEmbeddings.set(candidate.message.id, vector);
+      candidateEmbeddings.set(candidate.embedding.id, vector);
     }
   }
 
@@ -293,9 +306,9 @@ async function applyMMR(
 
     for (let i = 0; i < remaining.length; i++) {
       const candidate = remaining[i];
-      if (!candidate.message.id) continue;
+      if (!candidate.embedding.id) continue;
 
-      const candidateVec = candidateEmbeddings.get(candidate.message.id);
+      const candidateVec = candidateEmbeddings.get(candidate.embedding.id);
       if (!candidateVec) continue;
 
       // Relevance to query
@@ -304,9 +317,9 @@ async function applyMMR(
       // Maximum similarity to already selected items
       let maxSimilarity = 0;
       for (const selected_item of selected) {
-        if (!selected_item.message.id) continue;
+        if (!selected_item.embedding.id) continue;
 
-        const selectedVec = candidateEmbeddings.get(selected_item.message.id);
+        const selectedVec = candidateEmbeddings.get(selected_item.embedding.id);
         if (!selectedVec) continue;
 
         const similarity = cosineSimilarity(candidateVec, selectedVec);
@@ -375,32 +388,44 @@ export async function retrieveRelevant(
       // Convert cosine distance to similarity
       const cosineSim = 1 - result.distance;
 
-      // Fetch message from database
-      const message = await db.messages.get(result.id);
-      if (!message) {
-        traceLogger.warn('Retriever', 'Message not found for embedding', {
-          msgId: result.id,
+      // Fetch embedding from database
+      const embedding = await db.embeddings.get(result.id);
+      if (!embedding) {
+        traceLogger.warn('Retriever', 'Embedding not found', {
+          embId: result.id,
         });
         continue;
       }
 
-      // Calculate final score
-      let finalScore = cosineSim;
-      if (useRecencyBoost) {
-        const recency = calculateRecencyBoost(message.timestamp);
-        finalScore = calculateCombinedScore(cosineSim, recency, recencyAlpha, recencyBeta);
-      }
+      const source = await (embedding.sourceType === 'message'
+        ? db.messages.get(embedding.sourceId)
+        : db.documentChunks.get(embedding.sourceId));
 
-      // Filter by minimum score
-      if (finalScore < minScore) {
-        continue;
-      }
+      if (source) {
+        const { text, timestamp } = source;
+        // Calculate final score
+        let finalScore = cosineSim;
+        if (useRecencyBoost) {
+          if (timestamp !== undefined) {
+            const recency = calculateRecencyBoost(timestamp);
+            finalScore = calculateCombinedScore(cosineSim, recency, recencyAlpha, recencyBeta);
+          }
+        }
 
-      results.push({
-        message,
-        score: finalScore,
-        distance: result.distance,
-      });
+        // Filter by minimum score
+        if (finalScore < minScore) {
+          continue;
+        }
+
+        results.push({
+          embedding,
+          text,
+          timestamp,
+          role: embedding.sourceType === 'message' ? (source as Message).role : 'user',
+          score: finalScore,
+          distance: result.distance,
+        });
+      }
     }
 
     // Sort by final score (descending)

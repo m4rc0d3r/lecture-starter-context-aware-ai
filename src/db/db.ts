@@ -1,10 +1,12 @@
 import Dexie, { type EntityTable } from 'dexie';
 
+export type Role = 'user' | 'assistant' | 'system';
+
 // Message interface
 export interface Message {
   id?: number;
   threadId: string;
-  role: 'user' | 'assistant' | 'system';
+  role: Role;
   text: string;
   timestamp: number;
 }
@@ -27,11 +29,14 @@ export interface Fact {
   lastUpdatedAt: number;
 }
 
+export type EmbeddingSourceType = 'message' | 'documentChunk';
+
 // Embedding vector interface
 export interface Embedding {
   id?: number;
   threadId: string;
-  msgId: number;
+  sourceType: EmbeddingSourceType;
+  sourceId: number;
   dim: number; // Dimension of the embedding
   vec: Blob; // Float32Array stored as Blob
 }
@@ -42,6 +47,20 @@ export interface HNSWIndex {
   blob: ArrayBuffer; // Serialized HNSW index
 }
 
+export interface Document {
+  id?: number;
+  threadId: string;
+  name: string;
+}
+
+export interface DocumentChunk {
+  id?: number;
+  documentId: number;
+  index: number;
+  text: string;
+  timestamp: number;
+}
+
 // Define the database
 const db = new Dexie('offchat-bsa') as Dexie & {
   messages: EntityTable<Message, 'id'>;
@@ -49,6 +68,8 @@ const db = new Dexie('offchat-bsa') as Dexie & {
   facts: EntityTable<Fact, 'id'>;
   embeddings: EntityTable<Embedding, 'id'>;
   hnsw: EntityTable<HNSWIndex, 'threadId'>;
+  documents: EntityTable<Document, 'id'>;
+  documentChunks: EntityTable<DocumentChunk, 'id'>;
 };
 
 // Schema declaration
@@ -56,8 +77,10 @@ db.version(1).stores({
   messages: '++id, threadId, timestamp, role',
   summaries: '++id, threadId, upToTs',
   facts: '++id, threadId, key, sourceMsgId',
-  embeddings: '++id, threadId, msgId',
+  embeddings: '++id, threadId, [sourceType+sourceId]',
   hnsw: 'threadId',
+  documents: '++id, threadId',
+  documentChunks: '++id, documentId',
 });
 
 export { db };
