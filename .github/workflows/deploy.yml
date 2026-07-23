@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - 'main'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/checkout@v4
+        with:
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: dest
+      - shell: bash
+        env:
+          VITE_APP_BASE_PATH: ${{ vars.VITE_APP_BASE_PATH }}
+        run: |
+          cd source
+          npm ci
+          npm run build
+          cd ../dest
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -r ../source/dist/. .
+          git config user.name "${{ github.event.head_commit.author.name }}"
+          git config user.email "${{ github.event.head_commit.author.email }}"
+          git add .
+          if git diff --cached --quiet; then
+            echo 'No changes have been detected since the last commit.'
+          else
+            COMMIT_MESSAGE_FILE=$(mktemp)
+            echo "${{ github.event.head_commit.message }}" > "$COMMIT_MESSAGE_FILE"
+            git commit -F "$COMMIT_MESSAGE_FILE"
+            git push
+          fi
