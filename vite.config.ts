@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const maximumFileSizeToCacheInBytes = 24 * 1024 * 1024; // 24MB
+
 // https://vite.dev/config/
 export default defineConfig({
   server: {
@@ -16,7 +18,7 @@ export default defineConfig({
       srcDir: 'src/pwa',
       filename: 'sw.ts',
       injectManifest: {
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
+        maximumFileSizeToCacheInBytes,
       },
       manifest: {
         name: 'OffChat - Offline LLM',
@@ -47,7 +49,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB (allow large bundles)
+        maximumFileSizeToCacheInBytes,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/huggingface\.co\/.*/i,
